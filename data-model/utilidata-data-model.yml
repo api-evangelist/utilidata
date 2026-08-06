@@ -1,0 +1,123 @@
+generated: '2026-08-05'
+method: derived
+source: >-
+  grpc/utilidata-karman-bibimbap-v1.prost.rs (protobuf messages) and
+  charts/karman-lab/files/timescale-init.sql + services/data-exporter/src/data_product_listener.rs
+  in github.com/utilidata/power-aware-module
+
+summary: >-
+  The Karman data model has three projections of the same physical measurement: the
+  protobuf wire messages, a TimescaleDB hypertable that stores each frame as JSONB, and a
+  flat set of Prometheus gauges. Only the protobuf projection is a typed contract; the
+  other two are lossy views of it.
+
+entities:
+- name: CompositeJoinedCalculations
+  kind: message
+  role: root/envelope
+  description: The frame published on the ZeroMQ topic. Carries one or more wrapped data products.
+- name: CompositeJoinedCalculationsWrapper
+  kind: message
+  role: discriminated union
+  description: >-
+    Names the originating stream (calculation_name) and carries exactly one of two data
+    products via a protobuf oneof — per-cycle two-phase calculations, or an FFT.
+- name: CompositeTwoPhaseCalculations
+  kind: message
+  role: data product
+  description: Per-cycle calculations for phase A and phase B.
+- name: CompositeCalculations
+  kind: message
+  role: measurement bundle
+  description: One phase's voltage waveform, current waveform, derived power figures, and provenance.
+- name: WaveformCalculations
+  kind: message
+  role: value object
+  fields: [rms, dc_offset]
+- name: PowerCalculations
+  kind: message
+  role: value object
+  fields: [real_power_w, apparent_power_va, reactive_power_var, power_factor]
+- name: Fft
+  kind: message
+  role: data product
+  description: Frequency-domain data product — magnitude and phase arrays with provenance.
+- name: Provenance
+  kind: message
+  role: value object
+  fields: [utc_time, generic_sequence_number]
+
+relationships:
+- {from: CompositeJoinedCalculations, to: CompositeJoinedCalculationsWrapper, type: has_many, via: calculations}
+- {from: CompositeJoinedCalculationsWrapper, to: CompositeTwoPhaseCalculations, type: has_one, via: 'data_product oneof: calculations'}
+- {from: CompositeJoinedCalculationsWrapper, to: Fft, type: has_one, via: 'data_product oneof: fft'}
+- {from: CompositeTwoPhaseCalculations, to: CompositeCalculations, type: has_one, via: phase_a}
+- {from: CompositeTwoPhaseCalculations, to: CompositeCalculations, type: has_one, via: phase_b}
+- {from: CompositeCalculations, to: Provenance, type: has_one, via: provenance}
+- {from: CompositeCalculations, to: WaveformCalculations, type: has_one, via: voltage_waveform_calculations_v}
+- {from: CompositeCalculations, to: WaveformCalculations, type: has_one, via: current_waveform_calculations_a}
+- {from: CompositeCalculations, to: PowerCalculations, type: has_one, via: power_calculations}
+- {from: Fft, to: Provenance, type: has_one, via: provenance}
+
+x-modeling-note: >-
+  The wire schema models TWO phases (phase_a, phase_b) while the deployment and the exporter
+  both model THREE-phase systems — the exporter computes real_power_three_phase_* and
+  reactive_power_three_phase_* aggregates, and the TimescaleDB sink documents "logic for
+  3-phase data products". Three-phase totals are therefore a consumer-side computation over
+  multiple streams, not a field on the published message.
+
+storage_projection:
+  engine: TimescaleDB (PostgreSQL + timescaledb extension)
+  source: charts/karman-lab/files/timescale-init.sql
+  tables:
+  - name: bibimbap
+    hypertable: true
+    time_column: time
+    partitioning_column: device
+    number_partitions: 4
+    columns:
+    - {name: time, type: TIMESTAMPTZ, nullable: false}
+    - {name: device, type: TEXT, nullable: false}
+    - {name: data, type: JSONB, nullable: false}
+    indexes:
+    - {name: bibimbap_time_idx, on: 'time DESC'}
+    - {name: bibimbap_device_idx, on: device}
+    note: >-
+      The typed protobuf frame is flattened into an untyped JSONB blob on write. Schema
+      enforcement exists only at the wire, not in storage.
+
+metrics_projection:
+  source: services/data-exporter/src/data_product_listener.rs
+  type: prometheus gauge
+  labels: [stream, phase]
+  quantities:
+  - {base: active_power, aggregations: [latest, peak, trough, average], unit: watts}
+  - {base: real_power, aggregations: [latest, peak, trough, average], unit: watts}
+  - {base: reactive_power, aggregations: [latest, peak, trough, average], unit: var}
+  - {base: apparent_power, aggregations: [latest, peak, trough, average], unit: va}
+  - {base: power_factor, aggregations: [latest, peak, trough, average], unit: unitless}
+  - {base: rms_voltage, aggregations: [latest, peak, trough, average], unit: volts}
+  - {base: rms_current, aggregations: [latest, peak, trough, average], unit: amps}
+  - {base: dc_offset_voltage, aggregations: [latest, peak, trough, average], unit: volts}
+  - {base: dc_offset_current, aggregations: [latest, peak, trough, average], unit: amps}
+  - {base: real_power_three_phase, aggregations: [latest, peak, trough, average], unit: watts, derived: true}
+  - {base: reactive_power_three_phase, aggregations: [latest, peak, trough, average], unit: var, derived: true}
+  total_series: 44
+
+deployment_context:
+  source: charts/karman-lab/values.yaml
+  rack_id: r42
+  breaker_rating_amps: 60
+  system_voltage: 120
+  note: >-
+    Deployment-scoped electrical context lives in Helm values, not in the message schema —
+    a consumer cannot learn a frame's circuit rating from the frame itself.
+
+reference_datasets:
+- {name: sample1-b200-no-powercap, description: 'B200 HGX 8-GPU, ~1000 req/min against Qwen3-Coder-480B-A35B-Instruct via vLLM, no power cap'}
+- {name: sample2-b200-static-powercap, description: 'as sample1 with a 300W per-GPU static cap'}
+- {name: sample3-b200-dynamic-powercap, description: 'as sample1 with caps cycling 900W/600W/300W per GPU in ~10s steps'}
+- {name: sample4-b200-partial-dynamic-powercap, description: 'as sample3 with caps cycling twice mid-scenario'}
+datasets_note: >-
+  Each dataset is 3–6 minutes of real B200 server measurement at 60 samples/sec, three-phase
+  at the PDU inlet, recorded in the Utilidata lab and published as CSV in the repository.

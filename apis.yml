@@ -1,17 +1,37 @@
 aid: utilidata
-name: UtiliData
-description: 'UtiliData is a company surfaced via the API Evangelist harvest backlog (source: secondary-market)
-  and added to the network as a stub for full-pipeline profiling.'
+name: Utilidata
+description: 'Utilidata is an Ann Arbor, Michigan software company building Karman, a distributed
+  AI platform that runs on a custom NVIDIA system-on-module embedded directly into electrical
+  infrastructure — smart meters and grid-edge devices on the utility side, PDUs and power trays
+  inside AI data centers. Karman processes high-resolution AC metrology locally (single-cycle
+  waveform statistics at 1+ MS/s sample rates) to produce "data products" such as Power Quality
+  Analytics, enabling millisecond-level power control, GPU/PSU failure prediction, phase
+  balancing and power-aware scheduling. Utilidata publishes the Karman Power Aware Module as
+  Apache-2.0 open source: a Rust reference implementation that serializes Karman data products
+  as Protocol Buffers (package utilidata.karman.bibimbap.v1), transports them over ZeroMQ, and
+  exposes them to Prometheus and TimescaleDB through a Helm-packaged Kubernetes stack. The
+  company has raised a $100M Series C and counts NVIDIA, Microsoft Climate Innovation Fund,
+  American Electric Power and Renown Capital Partners among its backers.'
 url: https://raw.githubusercontent.com/api-evangelist/utilidata/refs/heads/main/apis.yml
+image: https://utilidata.com/static/apple-touch-icon.png
 x-type: company
 x-source: harvest:secondary-market
-x-tier: stub
-x-tier-reason: harvest
 specificationVersion: '0.20'
 created: '2026-08-05'
 modified: '2026-08-05'
 tags:
 - Company
+- Energy
+- Electric Grid
+- Utilities
+- Data Centers
+- Artificial Intelligence
+- Edge Computing
+- Telemetry
+- Protocol Buffers
+- Open Source
+- Grid Edge
+- Power Quality
 apis: []
 maintainers:
 - FN: Kin Lane
@@ -20,4 +40,42 @@ maintainers:
   email: info@apis.io
 common:
 - type: Website
-  url: https://www.hiive.com/securities/utilidata-stock
+  url: https://utilidata.com/
+- type: Product
+  url: https://utilidata.com/meet-karman
+- type: GitHubOrganization
+  url: https://github.com/utilidata
+- type: GitHubRepository
+  url: https://github.com/utilidata/power-aware-module
+- type: Blog
+  url: https://utilidata.com/news
+- type: Support
+  url: https://utilidata.com/contact-us
+- type: TermsOfService
+  url: https://utilidata.com/terms-of-use
+- type: PrivacyPolicy
+  url: https://utilidata.com/privacy-policy
+- type: Careers
+  url: https://utilidata.com/careers
+- type: Protobuf
+  url: grpc/utilidata-protobuf.yml
+- type: Packages
+  url: packages/utilidata-packages.yml
+- type: Conventions
+  url: conventions/utilidata-conventions.yml
+- type: DataModel
+  url: data-model/utilidata-data-model.yml
+- type: Conformance
+  url: conformance/utilidata-conformance.yml
+- type: Lifecycle
+  url: lifecycle/utilidata-lifecycle.yml
+- type: DomainSecurity
+  url: security/utilidata-domain-security.yml
+- type: LLMsTxt
+  url: llms/utilidata-llms.txt
+
+x-enrichment:
+  date: '2026-08-05'
+  status: enriched
+  artifacts_added: 10
+  pass: local-v1

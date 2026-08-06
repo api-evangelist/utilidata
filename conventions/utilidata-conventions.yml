@@ -1,0 +1,133 @@
+generated: '2026-08-05'
+method: derived
+source: >-
+  github.com/utilidata/power-aware-module — README.md, charts/karman-lab/values.yaml,
+  charts/karman-lab/templates/*.yaml, services/data-exporter/src/*.rs,
+  proto/protobuf-rs/src/gen/utilidata.karman.bibimbap.v1.rs
+
+summary: >-
+  Karman is not an HTTP request/response API. It is a telemetry contract: an on-device
+  publisher emits protobuf frames on a ZeroMQ topic, and consumers project those frames
+  into Prometheus metrics and a TimescaleDB hypertable. The conventions below are the
+  cross-cutting semantics a consumer must honor, read out of Utilidata's own reference
+  implementation. Sections that do not apply to a streaming contract are recorded as
+  not-applicable rather than left blank.
+
+interaction_model:
+  style: streaming telemetry (publish/subscribe)
+  request_response: false
+  http_api: false
+  note: >-
+    The only HTTP surface in the published stack is the Prometheus scrape endpoint on the
+    data-exporter, which is a metrics exposition endpoint, not an application API.
+
+transport:
+  protocol: zeromq
+  socket_pattern: PUB (device) / SUB (consumer)
+  port: 5557
+  topic: cycle-aligned
+  topic_semantics: >-
+    Publisher and every subscriber must agree on the topic string. An EMPTY subscription
+    string is meaningful: it mirrors the device's default of emitting frames with no
+    prefix, and therefore matches everything.
+  live_vs_replay:
+    live: 'tcp://<KARMAN_DEVICE_IP>:5557  (helm --set source.mode=live)'
+    replay: 'tcp://data-replay.<namespace>.svc:5557  (helm --set source.mode=replay, the default)'
+    note: >-
+      Switching from recorded lab data to live hardware is configuration only — no consumer
+      code changes. This is the closest thing Karman has to a sandbox/production separation.
+
+serialization:
+  format: protobuf (proto3)
+  package: utilidata.karman.bibimbap.v1
+  root_message: CompositeJoinedCalculations
+  schema: grpc/utilidata-protobuf.yml
+  field_presence: >-
+    Every scalar field in the schema is proto3 `optional`, so every value is explicitly
+    presence-tracked. The provider's comments mark these fields "Required" in intent while
+    the wire schema makes them optional — a consumer must handle absence, not assume it.
+
+rates_and_resolution:
+  metrology: 32 kSa/s voltage and current (lab reference hardware); platform supports 1+ MS/s
+  data_product: ~60 frames/sec — one per AC cycle ("single cycle" analytics)
+  prometheus_export: 1 sample/sec summary statistics
+  prometheus_scrape_interval: 1s
+  latency_target: sub-millisecond messaging (protobuf + ZeroMQ)
+
+metrics_exposition:
+  endpoint: /metrics
+  port: 9105
+  content_type: 'text/plain; version=0.0.4; charset=utf-8'
+  format: Prometheus text exposition format 0.0.4
+  metric_type: gauge (all 44)
+  labels: [stream, phase]
+  label_semantics:
+    stream: the calculation_name field of the originating CompositeJoinedCalculationsWrapper
+    phase: the electrical phase the value was measured on
+  aggregation_suffixes: [_latest, _peak, _trough, _average]
+  aggregation_semantics: >-
+    Each measured quantity is exported four ways over a rolling window — most recent value,
+    window peak, window trough, and window mean. Consumers should not treat _latest as an
+    average or vice versa.
+  health_checks:
+    liveness: 'GET /metrics on 9105'
+    readiness: 'GET /metrics on 9105'
+    note: The metrics endpoint doubles as the health probe; there is no separate /health.
+
+persistence:
+  sink: TimescaleDB hypertable
+  schema: data-model/utilidata-data-model.yml
+  table: bibimbap
+  partitioning: time (hypertable) + device (4 space partitions)
+
+authentication:
+  api_auth: not-applicable
+  note: >-
+    The published contract carries no authentication layer. The ZeroMQ stream is
+    unauthenticated and unencrypted; access is expected to be controlled at the network
+    layer. The reference chart ships a Kubernetes NetworkPolicy and an
+    `egress.allowedCidrs` value so an operator can restrict egress to the device IP —
+    that is the only access control the reference implementation provides.
+  demo_credentials_warning: >-
+    The lab chart hardcodes demo credentials (Grafana admin/karman, TimescaleDB
+    karman/karman). These are evaluation defaults published in the open-source chart and
+    must not be carried into any deployment.
+
+idempotency:
+  supported: false
+  reason: >-
+    A publish/subscribe telemetry stream has no client-initiated mutating request, so
+    there is no idempotency key contract. Ordering and de-duplication are instead the
+    consumer's job, using Provenance.generic_sequence_number.
+  deduplication_field: Provenance.generic_sequence_number
+
+pagination:
+  supported: not-applicable
+  reason: continuous stream; consumers window by time, not by page.
+
+versioning: lifecycle/utilidata-lifecycle.yml
+
+error_semantics:
+  envelope: none
+  reason: >-
+    There is no error envelope in the wire contract. Failures surface as transport-level
+    events — the reference consumer logs the error, sleeps 5 seconds, and re-subscribes in
+    an unbounded retry loop. Consumers must implement their own reconnect and gap handling.
+  consumer_retry_reference: services/data-exporter/src/main.rs
+
+rate_limits:
+  supported: not-applicable
+  reason: publisher-paced stream; the device sets the cadence, not a quota.
+
+tracing:
+  request_id: none
+  correlation: >-
+    Provenance {utc_time, generic_sequence_number} is the only correlation handle across
+    frames. Utilidata's own comments flag as an open TODO whether these refer to the first
+    or last sample of the window, so cross-system time alignment is not fully specified.
+
+x-gaps:
+- No authentication or transport encryption in the published contract.
+- No error envelope, no acknowledgement, no delivery guarantee stated.
+- Provenance timestamp semantics are marked TODO by the provider.
+- No published .proto, so bindings for languages other than Rust must be hand-derived.

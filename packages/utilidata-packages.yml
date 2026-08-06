@@ -1,0 +1,95 @@
+generated: '2026-08-05'
+method: searched
+source: >-
+  Registry probes (npm, PyPI, crates.io, Docker Hub, ECR Public) plus the Helm values.yaml
+  in github.com/utilidata/power-aware-module
+
+summary:
+  client_sdks: 0
+  container_images: 3
+  helm_charts: 1
+  note: >-
+    Utilidata publishes no client SDK in any language registry. What it publishes is the
+    Karman Power Aware Module reference stack: three first-party container images on AWS
+    ECR Public, and a Helm chart distributed inside the repository (not via a Helm repo).
+
+packages:
+- name: karman/data-exporter
+  kind: container-image
+  registry: ecr-public
+  registry_namespace: k0f5s7n3
+  url: https://gallery.ecr.aws/k0f5s7n3/karman/data-exporter
+  pull: docker pull public.ecr.aws/k0f5s7n3/karman/data-exporter:latest
+  language: rust
+  official: true
+  description: >-
+    Subscribes to the Karman ZeroMQ protobuf stream and exposes 44 power-analytics gauges
+    on a Prometheus /metrics endpoint (port 9105).
+  versions: [latest, v0.0.6, v0.0.5, v0.0.4, v0.0.3, v0.0.2, v0.0.1]
+  x-evidence: {fetched: '2026-08-05', endpoint: 'https://public.ecr.aws/v2/k0f5s7n3/karman/data-exporter/tags/list', http_status: 200}
+
+- name: karman/data-db
+  kind: container-image
+  registry: ecr-public
+  registry_namespace: k0f5s7n3
+  url: https://gallery.ecr.aws/k0f5s7n3/karman/data-db
+  pull: docker pull public.ecr.aws/k0f5s7n3/karman/data-db:latest
+  language: rust
+  official: true
+  description: >-
+    Time-series sink; reads per-cycle Karman power analytics (~60/sec) and writes them to
+    TimescaleDB for Grafana visualization. Includes three-phase data-product logic.
+  versions: [latest, v0.0.6, v0.0.5, v0.0.4, v0.0.3, v0.0.2, v0.0.1]
+  x-evidence: {fetched: '2026-08-05', endpoint: 'https://public.ecr.aws/v2/k0f5s7n3/karman/data-db/tags/list', http_status: 200}
+
+- name: karman/data-replay
+  kind: container-image
+  registry: ecr-public
+  registry_namespace: k0f5s7n3
+  url: https://gallery.ecr.aws/k0f5s7n3/karman/data-replay
+  pull: docker pull public.ecr.aws/k0f5s7n3/karman/data-replay:latest
+  language: rust
+  official: true
+  description: >-
+    Publishes recorded lab snapshots (B200 HGX 8-GPU server, three-phase PDU inlet) as
+    protobuf frames on a ZeroMQ topic, so the stack can be exercised without Karman
+    hardware. Ships four datasets covering no / static / dynamic / partial GPU power caps.
+  versions: [latest, beta, v0.0.6, v0.0.5, v0.0.4, v0.0.3, v0.0.2, v0.0.1]
+  x-evidence: {fetched: '2026-08-05', endpoint: 'https://public.ecr.aws/v2/k0f5s7n3/karman/data-replay/tags/list', http_status: 200}
+
+- name: karman-lab
+  kind: helm-chart
+  registry: none
+  url: https://github.com/utilidata/power-aware-module/tree/main/charts/karman-lab
+  install: helm upgrade --install karman-lab charts/karman-lab --namespace karman
+  official: true
+  published_to_registry: false
+  description: >-
+    Packages data-replay, data-db and data-exporter plus kube-prometheus-stack, Grafana
+    and TimescaleDB into a single deployable Karman lab. Installed from a repo clone —
+    Utilidata does not publish a Helm repository or an OCI chart.
+
+- name: protobuf-rs
+  kind: rust-crate
+  registry: none
+  version: 1.2.1
+  url: https://github.com/utilidata/power-aware-module/tree/main/proto/protobuf-rs
+  official: true
+  published_to_registry: false
+  description: >-
+    prost-generated Rust bindings for the utilidata.karman.bibimbap.v1 protobuf package.
+    Vendored in the repository; not published to crates.io, so it can only be consumed as
+    a path/git dependency.
+
+registries_probed:
+- {registry: npm, query: utilidata, result: no first-party packages}
+- {registry: pypi, queries: [utilidata, utilidata-karman, karman-sdk], result: 404 for all}
+- {registry: crates.io, queries: [utilidata, karman], result: no first-party crates}
+- {registry: docker-hub, namespace: utilidata, result: 0 repositories}
+- {registry: buf.build, path: /utilidata, result: 'soft-404 — the SPA returns 200 with an identical body for a nonexistent org, so no BSR module exists'}
+- {registry: ghcr.io, org: utilidata, result: no public packages}
+
+x-gap: >-
+  There is no first-party client library for the Karman protobuf contract in any public
+  package registry. A consumer integrating Karman today must either vendor the generated
+  Rust from the repository or regenerate bindings from a .proto Utilidata has not published.

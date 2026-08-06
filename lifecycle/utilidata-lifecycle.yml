@@ -1,0 +1,69 @@
+generated: '2026-08-05'
+method: derived
+source: >-
+  ECR Public registry tag listings for public.ecr.aws/k0f5s7n3/karman/*, the
+  utilidata.karman.bibimbap.v1 package name, and github.com/utilidata/power-aware-module
+  releases/tags — plus live probes of utilidata.com on 2026-08-05
+
+maturity:
+  stage: research preview
+  evidence: >-
+    The repository README labels the Karman Power Aware Module a "Research Preview", and
+    states that developer kits "will begin shipping in November". Karman is a pre-order
+    product; the open-source module is a reference implementation of a contract that is
+    still moving.
+
+versioning:
+  contract_scheme: protobuf package version
+  contract_current: v1
+  contract_evidence: 'package utilidata.karman.bibimbap.v1'
+  artifact_scheme: semver container image tags
+  artifact_current: v0.0.6
+  artifact_evidence: 'public.ecr.aws/k0f5s7n3/karman/{data-exporter,data-db,data-replay} tags v0.0.1 … v0.0.6, plus latest (and beta on data-replay)'
+  x-note: >-
+    The wire contract is already at v1 while every shipped artifact is still 0.0.x. A
+    consumer cannot tell from the package name alone which contract revisions a given
+    image speaks.
+
+change_log:
+  published: false
+  evidence: >-
+    github.com/utilidata/power-aware-module has 0 GitHub releases and 0 git tags; the only
+    version history is the image tag sequence in ECR Public, which carries no notes or dates.
+  x-gap: >-
+    Six shipped image versions with no release notes. There is no way for a consumer to
+    learn what changed between v0.0.5 and v0.0.6, or whether either changed the wire format.
+
+deprecation:
+  policy_published: false
+  sunset_header: false
+  evidence: 'no deprecation or sunset policy at any probed URL; utilidata.com has no /security, /trust or developer policy pages'
+
+status_page:
+  published: false
+  evidence: >-
+    No status page found. Note that Karman is deployed on-premise / on-device, so a hosted
+    status page would not describe the surface a consumer depends on.
+
+sla:
+  published: false
+  performance_targets_marketed:
+  - 'sub-20 millisecond control response (utilidata.com/meet-karman)'
+  - 'sub-millisecond messaging via protobuf + ZeroMQ (repository README)'
+  x-note: These are marketing performance claims, not a contractual service level.
+
+deprecated_operations: []
+
+developer_portal:
+  url: https://developer.utilidata.com/
+  state: broken
+  evidence:
+  - {url: 'https://developer.utilidata.com/', observed: 'TLS handshake fails — Let''s Encrypt R12 certificate for CN=developer.utilidata.com expired 2026-07-07 (notBefore 2026-04-08)', checked: '2026-08-05'}
+  - {url: 'https://developer.utilidata.com/', observed: 'with certificate verification disabled the origin returns HTTP 404 for /, /docs, /openapi.json, /llms.txt, /api, /reference', checked: '2026-08-05'}
+  - {url: 'https://web.archive.org/web/20251116052126/https://developer.utilidata.com/', observed: 'the 2025-11-16 archive is a Next.js shell whose rendered payload already reads "This page could not be found."; meta description "Tools and resources for testing and deploying the Karman platform"', checked: '2026-08-05'}
+  x-finding: >-
+    developer.utilidata.com is announced in Utilidata's press material and indexed by search
+    engines as "Karman Developer", but it has never served content at its root in any
+    snapshot we can reach, and since 2026-07-07 it cannot be reached over HTTPS at all.
+    Renewing the certificate and publishing the Karman contract there is the single highest
+    -leverage fix available to Utilidata.

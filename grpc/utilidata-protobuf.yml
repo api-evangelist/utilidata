@@ -1,0 +1,104 @@
+generated: '2026-08-05'
+method: derived
+source: grpc/utilidata-karman-bibimbap-v1.prost.rs
+name: Karman data products — Protocol Buffers message schema
+summary: >-
+  Utilidata's Karman platform serializes its data products as Protocol Buffers and
+  transports them over ZeroMQ. This is the machine-readable contract for the Karman
+  Power Quality Analytics data product. Utilidata does not publish the .proto source
+  file; what it publishes is the prost-build-generated Rust rendering of that .proto,
+  saved verbatim in this directory. The manifest below is derived from that verbatim
+  file — every field name, type, cardinality and tag number is read out of it.
+
+x-caution: >-
+  NO .proto FILE IS PUBLISHED BY UTILIDATA. This directory does not contain, and must
+  not be represented as containing, a provider-authored .proto. It contains (a) the
+  provider's own generated Rust, verbatim, and (b) this derived description of it.
+
+package: utilidata.karman.bibimbap.v1
+syntax: proto3
+generator: prost-build (prost 0.14.1)
+crate:
+  name: protobuf-rs
+  version: 1.2.1
+  published: false          # not on crates.io; vendored inside the repo
+  source: https://github.com/utilidata/power-aware-module/tree/main/proto/protobuf-rs
+
+grpc_services: []
+x-no-grpc-services: >-
+  The published schema declares messages only — there are no `service` definitions, so
+  this is a protobuf wire contract, not a gRPC API. Transport is ZeroMQ PUB/SUB
+  (default endpoint tcp://<device>:5557, topic "cycle-aligned").
+
+transport:
+  protocol: zeromq
+  pattern: pub-sub
+  default_port: 5557
+  topic: cycle-aligned
+  live_endpoint_template: tcp://<KARMAN_DEVICE_IP>:5557
+  replay_endpoint: tcp://data-replay.<namespace>.svc:5557
+  serialization: protobuf
+  note: >-
+    Endpoints are on-premise / on-device. Utilidata publishes no hosted, internet-reachable
+    API host for this surface.
+
+messages:
+- name: PowerCalculations
+  fields:
+  - {name: real_power_w, type: float, tag: 1, label: optional, unit: watts, doc: 'Real power (Watts)'}
+  - {name: apparent_power_va, type: float, tag: 2, label: optional, unit: volt-amps, doc: 'Apparent power (Volt*Amps)'}
+  - {name: reactive_power_var, type: float, tag: 3, label: optional, unit: volt-amps-reactive, doc: 'Reactive power (Volt*Amps reactive)'}
+  - {name: power_factor, type: float, tag: 4, label: optional, unit: unitless, doc: 'Power factor (unitless)'}
+- name: Provenance
+  fields:
+  - {name: utc_time, type: google.protobuf.Timestamp, tag: 1, label: optional, doc: 'UTC timestamp from metrorec'}
+  - {name: generic_sequence_number, type: uint64, tag: 2, label: optional, doc: 'Sequence number from metrorec'}
+  x-open-question: >-
+    The provider's own comments carry TODOs asking whether utc_time and
+    generic_sequence_number correspond to the first or last sample in the window.
+    This ambiguity is unresolved in the published schema.
+- name: WaveformCalculations
+  fields:
+  - {name: rms, type: float, tag: 1, label: optional, doc: 'Root mean square for the waveform in question'}
+  - {name: dc_offset, type: float, tag: 2, label: optional, doc: 'DC offset (for sinusoids a simple mean)'}
+- name: CompositeCalculations
+  doc: Waveform and power calculations with provenance.
+  fields:
+  - {name: provenance, type: Provenance, tag: 1, label: optional}
+  - {name: voltage_waveform_calculations_v, type: WaveformCalculations, tag: 2, label: optional, unit: volts}
+  - {name: current_waveform_calculations_a, type: WaveformCalculations, tag: 3, label: optional, unit: amps}
+  - {name: power_calculations, type: PowerCalculations, tag: 4, label: optional}
+- name: CompositeTwoPhaseCalculations
+  fields:
+  - {name: phase_a, type: CompositeCalculations, tag: 1, label: optional}
+  - {name: phase_b, type: CompositeCalculations, tag: 2, label: optional}
+- name: Fft
+  fields:
+  - {name: provenance, type: Provenance, tag: 1, label: optional}
+  - {name: magnitude, type: float, tag: 2, label: repeated, doc: 'The magnitude of the fft'}
+  - {name: phase, type: float, tag: 3, label: repeated, doc: 'The phase'}
+- name: CompositeJoinedCalculationsWrapper
+  fields:
+  - {name: calculation_name, type: string, tag: 1, label: optional, doc: 'The name of the stream of origin for the calculations'}
+  oneofs:
+  - name: data_product
+    doc: The calculations.
+    variants:
+    - {name: calculations, type: CompositeTwoPhaseCalculations, tag: 2}
+    - {name: fft, type: Fft, tag: 3}
+- name: CompositeJoinedCalculations
+  fields:
+  - {name: calculations, type: CompositeJoinedCalculationsWrapper, tag: 1, label: repeated}
+
+root_message: CompositeJoinedCalculations
+resolution:
+  metrology_sample_rate: 32 kSa/s (voltage + current, lab reference hardware)
+  data_product_rate: ~60 messages/sec (per-cycle, "single cycle" analytics)
+  platform_max_sample_rate: 1+ MS/s
+
+x-evidence:
+  fetched: '2026-08-05'
+  url: https://raw.githubusercontent.com/utilidata/power-aware-module/main/proto/protobuf-rs/src/gen/utilidata.karman.bibimbap.v1.rs
+  http_status: 200
+  license: Apache-2.0
+  repository: https://github.com/utilidata/power-aware-module

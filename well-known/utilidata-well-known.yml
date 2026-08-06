@@ -1,0 +1,44 @@
+generated: '2026-08-05'
+method: probed
+source: live GET probes on 2026-08-05
+summary: >-
+  No /.well-known/ discovery surface exists. Every canonical path returns 404 on the
+  corporate host and is unreachable on the developer host. Recorded as evidence of an
+  observed absence — no WellKnown or SecurityTxt pointer is wired in apis.yml, because
+  there is nothing to point at.
+
+hosts:
+- host: https://utilidata.com
+  reachable: true
+  documents:
+  - {path: /.well-known/security.txt, status: 404}
+  - {path: /.well-known/openid-configuration, status: 404}
+  - {path: /.well-known/oauth-authorization-server, status: 404}
+  - {path: /.well-known/api-catalog, status: 404}
+  - {path: /.well-known/ai-plugin.json, status: 404}
+  - {path: /.well-known/agent-card.json, status: 404}
+  - {path: /.well-known/agent.json, status: 404}
+  - {path: /llms.txt, status: 404}
+  - {path: /robots.txt, status: 404}
+  - {path: /sitemap.xml, status: 404}
+  - {path: /openapi.json, status: 404}
+  - {path: /openapi.yaml, status: 404}
+  - {path: /swagger.json, status: 404}
+  - {path: /api-docs, status: 404}
+
+- host: https://developer.utilidata.com
+  reachable: false
+  failure: 'TLS certificate expired 2026-07-07 (Let''s Encrypt R12, CN=developer.utilidata.com); curl exit 60'
+  documents:
+  - {path: /.well-known/agent-card.json, status: null, note: 'TLS failure; 404 when verification is disabled'}
+  - {path: /.well-known/agent.json, status: null, note: 'TLS failure; 404 when verification is disabled'}
+  - {path: /.well-known/security.txt, status: null, note: 'TLS failure; 404 when verification is disabled'}
+  - {path: /openapi.json, status: null, note: 'TLS failure; 404 when verification is disabled'}
+  - {path: /llms.txt, status: null, note: 'TLS failure; 404 when verification is disabled'}
+
+- host: api.utilidata.com
+  reachable: false
+  failure: 'NXDOMAIN — no DNS record'
+- host: docs.utilidata.com
+  reachable: false
+  failure: 'NXDOMAIN — no DNS record'
