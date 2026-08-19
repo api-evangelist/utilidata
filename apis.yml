@@ -16,7 +16,7 @@ url: https://raw.githubusercontent.com/api-evangelist/utilidata/refs/heads/main/
 image: https://utilidata.com/static/apple-touch-icon.png
 x-type: company
 x-source: harvest:secondary-market
-specificationVersion: '0.20'
+specificationVersion: '0.23'
 created: '2026-08-05'
 modified: '2026-08-05'
 tags:
