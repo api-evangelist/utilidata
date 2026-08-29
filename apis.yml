@@ -13,6 +13,18 @@ description: 'Utilidata is an Ann Arbor, Michigan software company building Karm
   company has raised a $100M Series C and counts NVIDIA, Microsoft Climate Innovation Fund,
   American Electric Power and Renown Capital Partners among its backers.'
 url: https://raw.githubusercontent.com/api-evangelist/utilidata/refs/heads/main/apis.yml
+deliveryModel:
+  model: unknown
+  open_source: unknown
+  commercial: true
+  callable_host: false
+  label: Delivery model not determined — needs a product licence on record
+  confidence: low
+  source:
+  - pricing
+  - repository-unlicensed
+  generated: '2026-08-28'
+  method: derived
 image: https://utilidata.com/static/apple-touch-icon.png
 x-type: company
 x-source: harvest:secondary-market
@@ -52,6 +64,8 @@ maintainers:
 - FN: APIs.json
   email: info@apis.io
 common:
+- type: IssueTracker
+  url: https://github.com/utilidata/power-aware-module/issues
 - type: Website
   url: https://utilidata.com/
 - type: Product
