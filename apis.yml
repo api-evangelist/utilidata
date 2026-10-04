@@ -14,16 +14,19 @@ description: 'Utilidata is an Ann Arbor, Michigan software company building Karm
   American Electric Power and Renown Capital Partners among its backers.'
 url: https://raw.githubusercontent.com/api-evangelist/utilidata/refs/heads/main/apis.yml
 deliveryModel:
-  model: unknown
+  model: saas
+  license_evidence:
+    not_product:
+    - utilidata/power-aware-module
   open_source: unknown
   commercial: true
   callable_host: false
-  label: Delivery model not determined — needs a product licence on record
+  label: Hosted service · you call their endpoint
   confidence: low
   source:
   - pricing
-  - repository-unlicensed
-  generated: '2026-08-28'
+  - repository-not-product
+  generated: '2026-09-25'
   method: derived
 accessModel:
   pricing: unknown
@@ -48,12 +51,12 @@ tags:
 - Energy
 - Electric Grid
 - Utilities
-- Data-Center
+- Data Center
 - Artificial Intelligence
 - Edge Computing
 - Telemetry
 - Protocol Buffers
-- Open-Source
+- Open Source
 - Grid Edge
 - Power Quality
 tags_raw:
@@ -69,6 +72,8 @@ tags_raw:
 - Open Source
 - Grid Edge
 - Power Quality
+- Data-Center
+- Open-Source
 apis: []
 maintainers:
 - FN: Kin Lane
